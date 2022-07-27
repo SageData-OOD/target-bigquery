@@ -367,11 +367,19 @@ class DbSync:
     def load_avro(self, f, count):
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        target_table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        target_table_ref = self.ref_helper.table_ref_from_stream(
+            stream,
+            tables_prefix=self.connection_config['tables_prefix'],
+            is_temporary=False
+        )
         target_table = self.client.get_table(target_table_ref)
-        logger.info("Loading {} rows into '{}'".format(count, target_table_ref.table_id))
 
-        temp_table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=True)
+        metric = {"type": "counter", "metric": "record_count", "value": count, "tags": {"count_type": "table_rows_persisted", "table": target_table_ref.table_id}}
+        print('INFO METRIC:', json.dumps(metric))
+
+        temp_table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=True
+        )
 
         logger.info("INSERTING INTO {} ({})".format(
             temp_table_ref.table_id,
@@ -409,7 +417,9 @@ class DbSync:
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
 
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=is_temporary
+        )
 
         schema = [
             column_schema(
@@ -447,7 +457,9 @@ class DbSync:
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
 
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=False
+        )
         table_id = table_ref.table_id
         query = "DELETE FROM {} WHERE _sdc_deleted_at IS NOT NULL".format(
                     sql_utils.safe_table_ref(table_ref))
@@ -458,7 +470,9 @@ class DbSync:
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
 
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=False
+        )
         table_id = table_ref.table_id
 
         query = "DELETE FROM {} WHERE _sdc_table_version != {}".format(
@@ -494,7 +508,9 @@ class DbSync:
     def update_columns(self):
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=False
+        )
         columns = self.get_table_columns(table_ref)
 
         columns_to_add = [
@@ -519,7 +535,9 @@ class DbSync:
     def update_clustering_fields(self):
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream, tables_prefix=self.connection_config['tables_prefix'], is_temporary=False
+        )
         table = self.client.get_table(table_ref)  # API request
 
         new_clustering_fields = [
@@ -559,7 +577,11 @@ class DbSync:
 
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream,
+            tables_prefix=self.connection_config['tables_prefix'],
+            is_temporary=False
+        )
         table_columns = self.get_table_columns(table_ref)
 
         # check if we already have this column in the table with a name like column_name__type_suffix
@@ -581,7 +603,11 @@ class DbSync:
     def add_columns(self, fields, stream):
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream,
+            tables_prefix=self.connection_config['tables_prefix'],
+            is_temporary=False
+        )
         table = self.client.get_table(table_ref)  # API request
 
         schema = table.schema[:]
@@ -594,7 +620,11 @@ class DbSync:
     def sync_table(self):
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-        table_ref = self.ref_helper.table_ref_from_stream(stream, is_temporary=False)
+        table_ref = self.ref_helper.table_ref_from_stream(
+            stream,
+            tables_prefix=self.connection_config['tables_prefix'],
+            is_temporary=False
+        )
 
         table_name_with_schema = f'{table_ref.dataset_id}.{table_ref.table_id}'
         try:
